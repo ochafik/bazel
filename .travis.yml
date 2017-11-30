@@ -1,0 +1,13 @@
+# See https://blog.hypriot.com/post/setup-simple-ci-pipeline-for-arm-images/
+sudo: required
+services:
+- docker
+language: bash
+script:
+- docker run --rm --privileged multiarch/qemu-user-static:register --reset
+- curl https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile | docker build -t ochafik/rpi-raspbian-bazel -
+- >
+  if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+    docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
+    docker push ochafik/rpi-raspbian-bazel
+  fi
