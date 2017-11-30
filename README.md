@@ -1,4 +1,4 @@
-# [Bazel](https://bazel.build)
+# [Bazel](https://bazel.build) [![Build Status](https://travis-ci.org/ochafik/bazel.svg?branch=master)](https://travis-ci.org/ochafik/bazel)
 
 *{Fast, Correct} - Choose two*
 
