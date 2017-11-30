@@ -162,7 +162,6 @@ function tempdir() {
   mkdir -p "${DIR}"
   local DIRBASE=$(basename "${DIR}")
   eval "cleanup_tempdir_${DIRBASE}() { rm -rf '${DIR}' >&/dev/null || true ; }"
-  ln -s "${DIR}/src" derived
   atexit cleanup_tempdir_${DIRBASE}
   NEW_TMPDIR="${DIR}"
 }
