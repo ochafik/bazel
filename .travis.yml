@@ -26,7 +26,8 @@ script:
   if [ "$BUILD_KIND" == native_from_scratch ]; then
     bash build_from_scratch.sh
   fi
-- if [ "$BUILD_KIND" == raspbian_from_scratch ]; then
+- >
+  if [ "$BUILD_KIND" == raspbian_from_scratch ]; then
     docker build -t ochafik/rpi-raspbian-bazel .
   fi
 after_success:
