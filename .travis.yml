@@ -5,18 +5,33 @@ services:
 language: bash
 before_script:
 - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-- apt-get install -y automake default-jdk g++ libtool make curl git python unzip wget zip
-- wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/build_from_scratch.sh
-- wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile
+- sudo apt-get install -y automake default-jdk g++ libtool make curl git python unzip wget zip
 env:
-  - BAZEL_BUILD_PLATFORM=native
-  - BAZEL_BUILD_PLATFORM=raspbian
+  # TODO(ochafik): find out how to install protoc-gen-grpc-java
+  # - BUILD_KIND=bootstrapped
+  - BUILD_KIND=native_from_scratch
+  - BUILD_KIND=raspbian_from_scratch
 script:
-- if [ "$BAZEL_BUILD_PLATFORM" == native ]; then bash build_from_scratch.sh ; fi
-- if [ "$BAZEL_BUILD_PLATFORM" == raspbian ]; then docker build -t ochafik/rpi-raspbian-bazel . ; fi
+- >
+  if [ "$BUILD_KIND" == bootstrapped ]; then
+    sudo apt-get install protobuf-compiler
+    export PROTOC=`which protoc`
+    export GRPC_JAVA_PLUGIN=`which protoc-gen-grpc-java`
+    bash ./compile.sh
+  else
+    wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/build_from_scratch.sh
+    wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile
+  fi
+- >
+  if [ "$BUILD_KIND" == native_from_scratch ]; then
+    bash build_from_scratch.sh
+  fi
+- if [ "$BUILD_KIND" == raspbian_from_scratch ]; then
+    docker build -t ochafik/rpi-raspbian-bazel .
+  fi
 after_success:
 - >
-  if [ "$BAZEL_BUILD_PLATFORM" == raspbian ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+  if [ "$BUILD_KIND" == raspbian_from_scratch ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
     docker push ochafik/rpi-raspbian-bazel
   fi
