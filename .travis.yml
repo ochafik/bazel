@@ -10,7 +10,7 @@ env:
   # TODO(ochafik): find out how to install protoc-gen-grpc-java
   # - BUILD_KIND=bootstrapped
   - BUILD_KIND=native_from_scratch
-  - BUILD_KIND=raspbian_from_scratch
+  - BUILD_KIND=docker_from_scratch
 script:
 - >
   if [ "$BUILD_KIND" == bootstrapped ]; then
@@ -20,19 +20,19 @@ script:
     bash ./compile.sh
   else
     wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/build_from_scratch.sh
-    wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile
+    wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile.debian
   fi
 - >
   if [ "$BUILD_KIND" == native_from_scratch ]; then
     bash build_from_scratch.sh
   fi
 - >
-  if [ "$BUILD_KIND" == raspbian_from_scratch ]; then
-    docker build -t ochafik/rpi-raspbian-bazel .
+  if [ "$BUILD_KIND" == docker_from_scratch ]; then
+    docker build -t ochafik/rpi-raspbian-bazel -f Dockerfile.debian .
   fi
 after_success:
 - >
-  if [ "$BUILD_KIND" == raspbian_from_scratch ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+  if [ "$BUILD_KIND" == docker_from_scratch ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
     docker push ochafik/rpi-raspbian-bazel
   fi
