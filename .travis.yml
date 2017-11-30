@@ -3,14 +3,20 @@ sudo: required
 services:
 - docker
 language: bash
-script:
+before_script:
 - docker run --rm --privileged multiarch/qemu-user-static:register --reset
+- apt-get install -y automake default-jdk g++ libtool make curl git python unzip wget zip
 - wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/build_from_scratch.sh
 - wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile
-- bash build_from_scratch.sh
-- docker build -t ochafik/rpi-raspbian-bazel .
+env:
+  - BAZEL_BUILD_PLATFORM=native
+  - BAZEL_BUILD_PLATFORM=raspbian
+script:
+- if [ "$BAZEL_BUILD_PLATFORM" == native ]; then bash build_from_scratch.sh ; fi
+- if [ "$BAZEL_BUILD_PLATFORM" == raspbian ]; then docker build -t ochafik/rpi-raspbian-bazel . ; fi
+after_success:
 - >
-  if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+  if [ "$BAZEL_BUILD_PLATFORM" == raspbian ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
     docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
     docker push ochafik/rpi-raspbian-bazel
   fi
