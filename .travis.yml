@@ -1,48 +1,14 @@
-# See https://blog.hypriot.com/post/setup-simple-ci-pipeline-for-arm-images/
-sudo: required
-services:
-- docker
-language: bash
-before_script:
-- docker run --rm --privileged multiarch/qemu-user-static:register --reset
-- sudo apt-get install -y automake default-jdk g++ libtool make curl git python unzip wget zip
-env:
-  # TODO(ochafik): find out how to install protoc-gen-grpc-java
-  # - BUILD_KIND=bootstrapped
-  - BUILD_KIND=native_from_scratch
-  - BUILD_KIND=debian_docker_from_scratch
-  - BUILD_KIND=raspbian_docker_from_scratch
-matrix:
-  allow_failures:
-    # Not fine-tuned yet: Some interference with the protobuf headers installed on the system, it seems
-    - env: BUILD_KIND=native_from_scratch
+# before_script:
+# - sudo apt-get install -y automake default-jdk g++ libtool make curl git python unzip wget zip
 script:
-- >
-  if [ "$BUILD_KIND" == bootstrapped ]; then
-    sudo apt-get install protobuf-compiler
-    export PROTOC=`which protoc`
-    export GRPC_JAVA_PLUGIN=`which protoc-gen-grpc-java`
-    bash ./compile.sh
-  else
-    wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/build_from_scratch.sh
-    wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile.debian
-    wget https://raw.githubusercontent.com/ochafik/rpi-raspbian-bazel/master/Dockerfile.travis
-  fi
-- >
-  if [ "$BUILD_KIND" == native_from_scratch ]; then
-    bash build_from_scratch.sh
-  fi
-- >
-  if [ "$BUILD_KIND" == debian_docker_from_scratch ]; then
-    docker build -t ochafik/rpi-raspbian-bazel -f Dockerfile.debian .
-  fi
-- >
-  if [ "$BUILD_KIND" == raspbian_docker_from_scratch ]; then
-    docker build -t ochafik/rpi-raspbian-bazel -f Dockerfile.travis .
-  fi
-after_success:
-- >
-  if [ "$BUILD_KIND" == debian_docker_from_scratch ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-    docker login -u="$DOCKER_USER" -p="$DOCKER_PASS"
-    docker push ochafik/rpi-raspbian-bazel
-  fi
+- pushd third_party/protobuf/3.4.0
+- export PROTOC_DIST=$PWD/dist
+- mkdir -p $PROTOC_DIST
+- ./autogen.sh && ./configure --prefix=$PROTOC_DIST && make install
+- export PROTOC=$PROTOC_DIST/bin/protoc
+- popd
+- pushd third_party/grpc/compiler/src/java_plugin/cpp
+- g++ -I$PROTOC_DIST/include -w -O2 -export-dynamic *.cpp -o protoc-gen-grpc-java $PROTOC_DIST/lib/libproto{c,buf}.a -lstdc++
+- export GRPC_JAVA_PLUGIN=$PWD/protoc-gen-grpc-java
+- popd
+- bash ./compile.sh
